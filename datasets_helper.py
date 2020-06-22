@@ -13,6 +13,7 @@ import nibabel as nib
 
 def load_auditory_datasets(nl):
 
+    # Load ontology
     d_onto = utils._get_dataset_dir('ontologies', data_dir='neurolang_data')
 
     if not os.path.exists(d_onto + '/neurofma_fma3.0.owl'):
@@ -21,6 +22,8 @@ def load_auditory_datasets(nl):
         urllib.request.urlretrieve(url, d_onto + '/neurofma_fma3.0.owl')
         print('Dataset created in neurolang_data/ontologies')
 
+
+    # Load Neurosynth
     d_neurosynth = utils._get_dataset_dir('neurosynth', data_dir='neurolang_data')
 
     f_neurosynth = utils._fetch_files(
@@ -38,11 +41,11 @@ def load_auditory_datasets(nl):
     database = pd.read_csv(f_neurosynth[0], sep='\t')
     features = pd.read_csv(f_neurosynth[1], sep='\t')
 
-    features_normalised = (
-        features
-        .melt(id_vars=features.columns[0], var_name='term', value_vars=features.columns[1:], value_name='tfidf')
-        .query('tfidf > 0')
-    )
+    #features_normalised = (
+    #    features
+    #    .melt(id_vars=features.columns[0], var_name='term', value_vars=features.columns[1:], value_name='tfidf')
+    #    .query('tfidf > 0')
+    #)
 
     nsh = fe.neurosynth_utils.NeuroSynthHandler()
     ns_ds = nsh.ns_load_dataset()
@@ -65,6 +68,8 @@ def load_auditory_datasets(nl):
         ]
     ]
 
+    # Load Destrieux
+
     dd = datasets.fetch_atlas_destrieux_2009()
     destrieux_to_ns_mni = image.resample_to_img(dd['maps'], it.masker.volume, interpolation='nearest')
     dd_data = destrieux_to_ns_mni.get_fdata()
@@ -83,14 +88,18 @@ def load_auditory_datasets(nl):
     for n, name in dd['labels']:
         dd_labels.append((n, name.decode('UTF-8').replace(" ", "_").replace("-", "_").lower()))
 
-    ns_pmid_term_tfidf = nl.add_tuple_set(features_normalised[['tfidf', 'pmid', 'term']].values, name='ns_pmid_term_tfidf')
+
+
+    # Load everything in NeuroLang
+
+    ####ns_pmid_term_tfidf = nl.add_tuple_set(features_normalised.values, name='ns_pmid_term_tfidf')
     #ns_pmid_term_tfidf = nl.add_probfacts_from_tuples(features_normalised[['tfidf', 'pmid', 'term']].values, name='ns_pmid_term_tfidf')
     
-    ns_activations = nl.add_tuple_set(database[['id', 'x', 'y', 'z', 'space']].values, name='ns_activations')
-    ns_activations_by_id = nl.add_tuple_set(
-        study_id_vox_id, name='ns_activations_by_id'
-    )
-    ns_vox_id_MNI = nl.add_tuple_set(vox_id_MNI, name='ns_vox_id_MNI')
+    #ns_activations = nl.add_tuple_set(database[['id', 'x', 'y', 'z', 'space']].values, name='ns_activations')
+    #ns_activations_by_id = nl.add_tuple_set(
+    #    study_id_vox_id, name='ns_activations_by_id'
+    #)
+    #ns_vox_id_MNI = nl.add_tuple_set(vox_id_MNI, name='ns_vox_id_MNI')
 
     xyz_ns = nl.add_tuple_set([(xyz[0], xyz[1], xyz[2], id_) for xyz, id_ in xyz_to_ns_region], name='xyz_neurosynth')
     xyz_dd = nl.add_tuple_set([(xyz[0], xyz[1], xyz[2], id_) for xyz, id_ in xyz_to_dd_region], name='xyz_destrieux')

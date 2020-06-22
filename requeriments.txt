@@ -1,1 +1,1 @@
--e git+ssh://git@github.com/gzanitti/NeuroLang.git@OHBM#egg=neurolang
+-e git+ssh://git@github.com/gzanitti/NeuroLang.git@OHBM_release#egg=neurolang
