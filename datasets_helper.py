@@ -92,8 +92,14 @@ def load_auditory_datasets(nl):
 
     # Load everything in NeuroLang
 
-    ####ns_pmid_term_tfidf = nl.add_tuple_set(features_normalised.values, name='ns_pmid_term_tfidf')
+
+    #Probabilistic facts
+
     #ns_pmid_term_tfidf = nl.add_probfacts_from_tuples(features_normalised[['tfidf', 'pmid', 'term']].values, name='ns_pmid_term_tfidf')
+    
+
+
+    #Deterministic facts
     
     #ns_activations = nl.add_tuple_set(database[['id', 'x', 'y', 'z', 'space']].values, name='ns_activations')
     #ns_activations_by_id = nl.add_tuple_set(
