@@ -10,59 +10,6 @@ from neurolang import frontend as fe
 import numpy as np
 import nibabel as nib
 
-def load_pain_datasets(nl):
-    d_onto = utils._get_dataset_dir('ontologies', data_dir='neurolang_data')
-
-    if not os.path.exists(d_onto + '/IOBC_1_4_0.xrdf'):
-        print('Downloading IOBC ontology')
-        url = 'http://data.bioontology.org/ontologies/IOBC/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb&download_format=rdf'
-        urllib.request.urlretrieve(url, d_onto + '/IOBC_1_4_0.xrdf')
-        print('Dataset created in neurolang_data/ontologies')
-
-    d_neurosynth = utils._get_dataset_dir('neurosynth', data_dir='neurolang_data')
-
-    f_neurosynth = utils._fetch_files(
-        d_neurosynth, [
-            (
-                f,
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
-                {'uncompress': True}
-            )
-            for f in ('database.txt', 'features.txt')
-        ],
-        verbose=True
-    )
-
-    database = pd.read_csv(f_neurosynth[0], sep='\t')
-    features = pd.read_csv(f_neurosynth[1], sep='\t')
-
-    features_normalised = (
-        features
-        .melt(id_vars=features.columns[0], var_name='term', value_vars=features.columns[1:], value_name='tfidf')
-        .query('tfidf > 0')
-    )
-
-    nsh = fe.neurosynth_utils.NeuroSynthHandler()
-    ns_ds = nsh.ns_load_dataset()
-    it = ns_ds.image_table
-    vox_ids, study_ids_ix = it.data.nonzero()
-    study_ids = ns_ds.image_table.ids[study_ids_ix]
-    study_id_vox_id = np.transpose([study_ids, vox_ids])
-    masked_ = it.masker.unmask(np.arange(it.data.shape[0]))
-    nnz = masked_.nonzero()
-    vox_id_MNI = np.c_[
-        masked_[nnz].astype(int),
-        nib.affines.apply_affine(it.masker.volume.affine, np.transpose(nnz)),
-        [
-            fe.ExplicitVBR(
-                [v],
-                affine_matrix=it.masker.volume.affine,
-                image_dim=it.masker.volume.shape
-            )
-            for v in zip(*nnz)
-        ]
-    ]
-
 
 def load_auditory_datasets(nl):
 
@@ -136,7 +83,9 @@ def load_auditory_datasets(nl):
     for n, name in dd['labels']:
         dd_labels.append((n, name.decode('UTF-8').replace(" ", "_").replace("-", "_").lower()))
 
-    ns_pmid_term_tfidf = nl.add_tuple_set(features_normalised.values, name='ns_pmid_term_tfidf')
+    ns_pmid_term_tfidf = nl.add_tuple_set(features_normalised[['tfidf', 'pmid', 'term']].values, name='ns_pmid_term_tfidf')
+    #ns_pmid_term_tfidf = nl.add_probfacts_from_tuples(features_normalised[['tfidf', 'pmid', 'term']].values, name='ns_pmid_term_tfidf')
+    
     ns_activations = nl.add_tuple_set(database[['id', 'x', 'y', 'z', 'space']].values, name='ns_activations')
     ns_activations_by_id = nl.add_tuple_set(
         study_id_vox_id, name='ns_activations_by_id'
@@ -375,4 +324,58 @@ def destrieux_name_to_fma_relations():
         ("r_s_temporal_inf", "Right inferior temporal sulcus"),
         ("r_s_temporal_sup", "Right superior temporal sulcus"),
         ("r_s_temporal_transverse", "Right transverse temporal sulcus"),
+    ]
+
+
+def load_pain_datasets(nl):
+    d_onto = utils._get_dataset_dir('ontologies', data_dir='neurolang_data')
+
+    if not os.path.exists(d_onto + '/IOBC_1_4_0.xrdf'):
+        print('Downloading IOBC ontology')
+        url = 'http://data.bioontology.org/ontologies/IOBC/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb&download_format=rdf'
+        urllib.request.urlretrieve(url, d_onto + '/IOBC_1_4_0.xrdf')
+        print('Dataset created in neurolang_data/ontologies')
+
+    d_neurosynth = utils._get_dataset_dir('neurosynth', data_dir='neurolang_data')
+
+    f_neurosynth = utils._fetch_files(
+        d_neurosynth, [
+            (
+                f,
+                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
+                {'uncompress': True}
+            )
+            for f in ('database.txt', 'features.txt')
+        ],
+        verbose=True
+    )
+
+    database = pd.read_csv(f_neurosynth[0], sep='\t')
+    features = pd.read_csv(f_neurosynth[1], sep='\t')
+
+    features_normalised = (
+        features
+        .melt(id_vars=features.columns[0], var_name='term', value_vars=features.columns[1:], value_name='tfidf')
+        .query('tfidf > 0')
+    )
+
+    nsh = fe.neurosynth_utils.NeuroSynthHandler()
+    ns_ds = nsh.ns_load_dataset()
+    it = ns_ds.image_table
+    vox_ids, study_ids_ix = it.data.nonzero()
+    study_ids = ns_ds.image_table.ids[study_ids_ix]
+    study_id_vox_id = np.transpose([study_ids, vox_ids])
+    masked_ = it.masker.unmask(np.arange(it.data.shape[0]))
+    nnz = masked_.nonzero()
+    vox_id_MNI = np.c_[
+        masked_[nnz].astype(int),
+        nib.affines.apply_affine(it.masker.volume.affine, np.transpose(nnz)),
+        [
+            fe.ExplicitVBR(
+                [v],
+                affine_matrix=it.masker.volume.affine,
+                image_dim=it.masker.volume.shape
+            )
+            for v in zip(*nnz)
+        ]
     ]
