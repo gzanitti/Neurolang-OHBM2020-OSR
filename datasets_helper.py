@@ -14,7 +14,7 @@ def load_pain_datasets(nl):
     d_onto = utils._get_dataset_dir('ontologies', data_dir='neurolang_data')
 
     if not os.path.exists(d_onto + '/IOBC_1_4_0.xrdf'):
-        print('Downloading FMA ontology')
+        print('Downloading IOBC ontology')
         url = 'http://data.bioontology.org/ontologies/IOBC/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb&download_format=rdf'
         urllib.request.urlretrieve(url, d_onto + '/IOBC_1_4_0.xrdf')
         print('Dataset created in neurolang_data/ontologies')
